@@ -12,6 +12,21 @@ export type AttackPayload = {
   blockedMessage?: string;
 };
 
+export type BurstProgress = {
+  completed: number;
+  total: number;
+  allowed: number;
+  rateLimited: number;
+  rejected: number;
+  failed: number;
+};
+
+type StudentPayload = {
+  name: string;
+  student_code: string;
+  major: string;
+};
+
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'https://api.doanuit.online';
 
@@ -42,6 +57,10 @@ function buildBody(body: unknown) {
 function redirectToServer(params: Record<string, string>) {
   const query = new URLSearchParams(params);
   window.location.href = `${SERVER_UI_URL}/?${query.toString()}`;
+}
+
+function packJson(value: unknown) {
+  return encodeURIComponent(JSON.stringify(value));
 }
 
 export async function runAttack(payload: AttackPayload) {
@@ -84,12 +103,183 @@ export async function runAttack(payload: AttackPayload) {
   }
 }
 
-export async function runBurstAttack(token: string, count: number) {
+export async function runReplayAttack(payload: AttackPayload, replayRequestId: string) {
+  const attackId = crypto.randomUUID();
+  const requestId = replayRequestId || crypto.randomUUID();
+  const method = payload.method || 'GET';
+  const headers = buildHeaders(payload, attackId, requestId);
+  const body = buildBody(payload.body);
+
+  try {
+    const firstResponse = await fetch(`${API_BASE_URL}${payload.path}`, {
+      method,
+      headers,
+      body,
+    });
+
+    const replayResponse = await fetch(`${API_BASE_URL}${payload.path}`, {
+      method,
+      headers,
+      body,
+    });
+
+    const replayBlocked = !replayResponse.ok;
+
+    redirectToServer({
+      scenario: payload.scenario,
+      result: replayBlocked ? 'blocked' : 'allowed',
+      code: String(replayResponse.status),
+      layer: replayBlocked ? payload.blockedLayer || 'Kong Replay Protection' : payload.successLayer || 'Backend',
+      attack_id: attackId,
+      request_id: requestId,
+      api: payload.path,
+      message: replayBlocked
+        ? `${payload.blockedMessage || 'Replay request was blocked.'} First request HTTP ${firstResponse.status}, replay HTTP ${replayResponse.status}.`
+        : `${payload.successMessage || 'Replay request was still accepted.'} First request HTTP ${firstResponse.status}, replay HTTP ${replayResponse.status}.`,
+    });
+  } catch {
+    redirectToServer({
+      scenario: payload.scenario,
+      result: 'error',
+      code: '0',
+      layer: 'Browser/CORS/TLS',
+      attack_id: attackId,
+      request_id: requestId,
+      api: payload.path,
+      message: 'Browser could not complete replay test. Check CORS, TLS certificate, DNS, and Azure inbound rules.',
+    });
+  }
+}
+
+export async function fetchDemoToken(role: 'admin' | 'user') {
+  const response = await fetch(`${API_BASE_URL}/api/v1/demo-token/${role}`, {
+    headers: {
+      'X-Attack-Id': crypto.randomUUID(),
+      'X-Request-ID': crypto.randomUUID(),
+      'X-Scenario': `demo-token-${role}`,
+    },
+  });
+  const data = await response.json();
+
+  if (!response.ok || !data.access_token) {
+    throw new Error(data.message || `Demo token request failed with HTTP ${response.status}`);
+  }
+
+  return data.access_token as string;
+}
+
+export async function runStudentAclDemo({
+  token,
+  role,
+  student,
+}: {
+  token: string;
+  role: 'user' | 'admin';
+  student: StudentPayload;
+}) {
   const attackId = crypto.randomUUID();
   const requestId = crypto.randomUUID();
-  let blocked = 0;
+  const path = '/api/v1/students-rs256';
+  const authHeaders: Record<string, string> = token.trim() ? { Authorization: `Bearer ${token.trim()}` } : {};
+
+  try {
+    const createResponse = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+        'X-Attack-Id': attackId,
+        'X-Request-ID': requestId,
+        'X-Scenario': `acl-${role}-create-student`,
+      },
+      body: JSON.stringify(student),
+    });
+
+    let tableResponse: Response | undefined;
+    let tableData: unknown = null;
+
+    try {
+      tableResponse = await fetch(`${API_BASE_URL}${path}?_evidence=${Date.now()}`, {
+        headers: {
+          ...authHeaders,
+          'X-Attack-Id': attackId,
+          'X-Request-ID': `${requestId}-table`,
+          'X-Scenario': `acl-${role}-students-table`,
+        },
+      });
+      tableData = await tableResponse.json();
+    } catch {
+      tableData = { status: 'FAILED', students: [] };
+    }
+
+    const createAllowed = createResponse.ok;
+    const expectedBlocked = role === 'user' && !createAllowed;
+    const expectedAllowed = role === 'admin' && createAllowed;
+    const result = expectedBlocked || expectedAllowed ? (createAllowed ? 'allowed' : 'blocked') : 'warning';
+    const students = Array.isArray((tableData as { students?: unknown }).students)
+      ? (tableData as { students: unknown[] }).students
+      : [];
+
+    redirectToServer({
+      scenario: role === 'admin' ? 'admin-role-create-student' : 'user-role-create-student',
+      result,
+      code: String(createResponse.status),
+      layer: createAllowed ? 'Backend' : 'Kong ACL/RBAC',
+      attack_id: attackId,
+      request_id: requestId,
+      api: path,
+      message: createAllowed
+        ? `Admin role created student ${student.student_code}. Table was refreshed with HTTP ${tableResponse?.status || 'n/a'}.`
+        : `User role was blocked from creating student ${student.student_code}. Table was refreshed with HTTP ${tableResponse?.status || 'n/a'} and should not include the blocked row.`,
+      table: 'students',
+      actor_role: role,
+      mutation_status: createAllowed ? 'created' : 'blocked',
+      attempted_student: packJson(student),
+      students: packJson(students),
+    });
+  } catch {
+    redirectToServer({
+      scenario: role === 'admin' ? 'admin-role-create-student' : 'user-role-create-student',
+      result: 'error',
+      code: '0',
+      layer: 'Browser/CORS/TLS',
+      attack_id: attackId,
+      request_id: requestId,
+      api: path,
+      message: 'Browser could not complete ACL demo. Check token, CORS, TLS certificate, DNS, and Azure inbound rules.',
+      table: 'students',
+      actor_role: role,
+      mutation_status: 'error',
+      attempted_student: packJson(student),
+      students: packJson([]),
+    });
+  }
+}
+
+export async function runBurstAttack(token: string, count: number, onProgress?: (progress: BurstProgress) => void) {
+  const attackId = crypto.randomUUID();
+  const requestId = crypto.randomUUID();
+  let rateLimited = 0;
   let allowed = 0;
+  let rejected = 0;
   let failed = 0;
+  let completed = 0;
+
+  if (!token.trim()) {
+    redirectToServer({
+      scenario: 'rate-limit-burst',
+      result: 'warning',
+      code: '0',
+      layer: 'Attack Client',
+      attack_id: attackId,
+      request_id: requestId,
+      api: '/api/v1/jwt-rs256',
+      message: 'Rate-limit demo needs a valid RS256/admin token. Without it, JWT blocks the request before the rate-limit evidence is meaningful.',
+    });
+    return;
+  }
+
+  onProgress?.({ completed, total: count, allowed, rateLimited, rejected, failed });
 
   await Promise.all(
     Array.from({ length: count }, async (_, index) => {
@@ -103,23 +293,26 @@ export async function runBurstAttack(token: string, count: number) {
           },
         });
 
-        if (response.status === 429) blocked += 1;
+        if (response.status === 429) rateLimited += 1;
         else if (response.ok) allowed += 1;
-        else failed += 1;
+        else rejected += 1;
       } catch {
         failed += 1;
       }
+
+      completed += 1;
+      onProgress?.({ completed, total: count, allowed, rateLimited, rejected, failed });
     }),
   );
 
   redirectToServer({
     scenario: 'rate-limit-burst',
-    result: blocked > 0 ? 'blocked' : 'warning',
-    code: blocked > 0 ? '429' : '0',
-    layer: blocked > 0 ? 'Kong Rate Limiting' : 'Browser/CORS/TLS',
+    result: rateLimited > 0 ? 'blocked' : 'warning',
+    code: rateLimited > 0 ? '429' : rejected > 0 ? '401/403' : '200',
+    layer: rateLimited > 0 ? 'Kong Rate Limiting' : rejected > 0 ? 'Kong JWT/ACL' : 'Backend',
     attack_id: attackId,
     request_id: requestId,
     api: '/api/v1/jwt-rs256',
-    message: `Burst completed: ${allowed} allowed, ${blocked} blocked by rate limit, ${failed} failed before/inside gateway.`,
+    message: `Burst completed after sending ${count} requests: ${allowed} allowed, ${rateLimited} rate-limited, ${rejected} rejected by auth/policy, ${failed} failed at browser/network layer.`,
   });
 }
