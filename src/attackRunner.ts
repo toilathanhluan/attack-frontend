@@ -13,10 +13,10 @@ export type AttackPayload = {
 };
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'https://api.your-domain.example';
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'https://api.doanuit.online';
 
 export const SERVER_UI_URL =
-  import.meta.env.VITE_SERVER_UI_URL?.replace(/\/$/, '') || window.location.origin;
+  import.meta.env.VITE_SERVER_UI_URL?.replace(/\/$/, '') || 'https://server.doanuit.online';
 
 function buildHeaders(payload: AttackPayload, attackId: string, requestId: string) {
   const headers: Record<string, string> = {
