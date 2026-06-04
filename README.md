@@ -2,26 +2,37 @@
 
 Frontend nay dung de tao cac kich ban client tan cong co kiem soat vao he thong Secure API Gateway.
 
-Luồng demo:
+## Luong demo moi
 
 ```text
-Attack Frontend -> API Gateway -> nhan status -> redirect Server UI
+Attack Frontend -> API Gateway -> nhan HTTP status tai cho
+Server/Kong -> ghi log chan request tren may server
 ```
 
-## Cau hinh
+Attack Frontend khong tu redirect ve Server UI nua. Khi bam kich ban tan cong, trang se hien:
 
-Tao `.env`:
+- HTTP status
+- ket qua allowed/blocked/error/warning
+- layer bi chan
+- request id
+- message tu kich ban demo
+
+## Cau hinh 2 may
+
+Tao file `.env` tren may chay attack frontend:
+
+```env
+VITE_API_BASE_URL=https://192.168.1.10:8443
+VITE_SERVER_UI_URL=http://192.168.1.10:5173
+```
+
+Trong do `192.168.1.10` la IP LAN cua may server. Khong dung `localhost` tren may attack, vi `localhost` se tro ve chinh may attack.
+
+Neu da co domain:
 
 ```env
 VITE_API_BASE_URL=https://api.tenmiencuaban.com
 VITE_SERVER_UI_URL=https://server.tenmiencuaban.com
-```
-
-Neu chua co domain:
-
-```env
-VITE_API_BASE_URL=https://20.214.159.58:8443
-VITE_SERVER_UI_URL=https://server-ui.vercel.app
 ```
 
 ## Chay local
@@ -29,6 +40,12 @@ VITE_SERVER_UI_URL=https://server-ui.vercel.app
 ```bash
 npm install
 npm run dev
+```
+
+Mo URL Vite hien ra tren may attack, vi du:
+
+```text
+http://192.168.1.20:5173
 ```
 
 ## Deploy Vercel

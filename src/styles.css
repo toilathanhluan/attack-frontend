@@ -177,6 +177,100 @@ button {
   gap: 24px;
 }
 
+.attack-result-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 184, 0, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 184, 0, 0.08);
+  padding: 18px;
+}
+
+.attack-result-panel--blocked {
+  border-color: rgba(255, 77, 109, 0.45);
+  background: rgba(255, 77, 109, 0.1);
+}
+
+.attack-result-panel--allowed {
+  border-color: rgba(0, 255, 149, 0.4);
+  background: rgba(0, 255, 149, 0.08);
+}
+
+.attack-result-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.attack-result-panel__icon {
+  width: 30px;
+  height: 30px;
+  color: #ffb800;
+}
+
+.attack-result-panel--blocked .attack-result-panel__icon {
+  color: #ff4d6d;
+}
+
+.attack-result-panel--allowed .attack-result-panel__icon {
+  color: #00ff95;
+}
+
+.attack-result-panel__header span,
+.attack-result-panel__meta span {
+  color: #aab2d5;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.attack-result-panel__header h3 {
+  margin: 3px 0 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.attack-result-panel__meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.attack-result-panel__meta div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.24);
+  padding: 10px;
+}
+
+.attack-result-panel__meta strong,
+.attack-result-panel code {
+  overflow-wrap: anywhere;
+  color: #ffffff;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.attack-result-panel p {
+  margin: 0;
+  color: #ffffff;
+  line-height: 1.55;
+}
+
+.attack-result-panel code {
+  display: block;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 8px 10px;
+  color: #ffb800;
+}
+
 .page-title h2 {
   display: flex;
   align-items: center;
@@ -620,7 +714,8 @@ textarea:focus {
 
   .feature-grid,
   .token-grid,
-  .metric-grid {
+  .metric-grid,
+  .attack-result-panel__meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -651,7 +746,8 @@ textarea:focus {
 
   .feature-grid,
   .token-grid,
-  .metric-grid {
+  .metric-grid,
+  .attack-result-panel__meta {
     grid-template-columns: 1fr;
   }
 }

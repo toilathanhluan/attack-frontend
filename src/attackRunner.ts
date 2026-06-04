@@ -21,6 +21,22 @@ export type BurstProgress = {
   failed: number;
 };
 
+export type AttackResult = {
+  scenario: string;
+  result: 'allowed' | 'blocked' | 'error' | 'warning';
+  code: string;
+  layer: string;
+  attack_id: string;
+  request_id: string;
+  api: string;
+  message: string;
+  table?: string;
+  actor_role?: string;
+  mutation_status?: string;
+  attempted_student?: string;
+  students?: string;
+};
+
 type StudentPayload = {
   name: string;
   student_code: string;
@@ -54,9 +70,8 @@ function buildBody(body: unknown) {
   return JSON.stringify(body);
 }
 
-function redirectToServer(params: Record<string, string>) {
-  const query = new URLSearchParams(params);
-  window.location.href = `${SERVER_UI_URL}/?${query.toString()}`;
+function publishAttackResult(params: AttackResult) {
+  window.dispatchEvent(new CustomEvent<AttackResult>('attack-result', { detail: params }));
 }
 
 function packJson(value: unknown) {
@@ -77,7 +92,7 @@ export async function runAttack(payload: AttackPayload) {
 
     const allowed = response.ok;
 
-    redirectToServer({
+    publishAttackResult({
       scenario: payload.scenario,
       result: allowed ? 'allowed' : 'blocked',
       code: String(response.status),
@@ -90,7 +105,7 @@ export async function runAttack(payload: AttackPayload) {
         : payload.blockedMessage || `Gateway blocked request with HTTP ${response.status}.`,
     });
   } catch {
-    redirectToServer({
+    publishAttackResult({
       scenario: payload.scenario,
       result: 'error',
       code: '0',
@@ -125,7 +140,7 @@ export async function runReplayAttack(payload: AttackPayload, replayRequestId: s
 
     const replayBlocked = !replayResponse.ok;
 
-    redirectToServer({
+    publishAttackResult({
       scenario: payload.scenario,
       result: replayBlocked ? 'blocked' : 'allowed',
       code: String(replayResponse.status),
@@ -138,7 +153,7 @@ export async function runReplayAttack(payload: AttackPayload, replayRequestId: s
         : `${payload.successMessage || 'Replay request was still accepted.'} First request HTTP ${firstResponse.status}, replay HTTP ${replayResponse.status}.`,
     });
   } catch {
-    redirectToServer({
+    publishAttackResult({
       scenario: payload.scenario,
       result: 'error',
       code: '0',
@@ -225,7 +240,7 @@ export async function runStudentAclDemo({
       ? (tableData as { students: unknown[] }).students
       : [];
 
-    redirectToServer({
+    publishAttackResult({
       scenario: role === 'admin' ? `admin-role-create-student-${algo}` : `user-role-create-student-${algo}`,
       result,
       code: String(createResponse.status),
@@ -243,7 +258,7 @@ export async function runStudentAclDemo({
       students: packJson(students),
     });
   } catch {
-    redirectToServer({
+    publishAttackResult({
       scenario: role === 'admin' ? `admin-role-create-student-${algo}` : `user-role-create-student-${algo}`,
       result: 'error',
       code: '0',
@@ -277,7 +292,7 @@ export async function runBurstAttack(
   let completed = 0;
 
   if (!token.trim()) {
-    redirectToServer({
+    publishAttackResult({
       scenario,
       result: 'warning',
       code: '0',
@@ -316,7 +331,7 @@ export async function runBurstAttack(
     }),
   );
 
-  redirectToServer({
+  publishAttackResult({
     scenario,
     result: rateLimited > 0 ? 'blocked' : 'warning',
     code: rateLimited > 0 ? '429' : rejected > 0 ? '401/403' : '200',

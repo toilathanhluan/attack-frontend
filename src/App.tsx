@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import {
   API_BASE_URL,
+  AttackResult,
   SERVER_UI_URL,
   TokenAlgorithm,
   fetchDemoToken,
@@ -386,6 +387,51 @@ function PageTitle({
   );
 }
 
+function AttackResultPanel({ result }: { result: AttackResult | null }) {
+  if (!result) return null;
+
+  const isBlocked = result.result === 'blocked';
+  const isAllowed = result.result === 'allowed';
+  const toneClass = isBlocked
+    ? 'attack-result-panel--blocked'
+    : isAllowed
+      ? 'attack-result-panel--allowed'
+      : 'attack-result-panel--warning';
+  const Icon = isBlocked ? ShieldAlert : isAllowed ? CheckCircle2 : AlertTriangle;
+
+  return (
+    <section className={`attack-result-panel ${toneClass}`}>
+      <div className="attack-result-panel__header">
+        <Icon className="attack-result-panel__icon" />
+        <div>
+          <span>Last attack result</span>
+          <h3>{result.scenario}</h3>
+        </div>
+      </div>
+      <div className="attack-result-panel__meta">
+        <div>
+          <span>HTTP</span>
+          <strong>{result.code}</strong>
+        </div>
+        <div>
+          <span>Result</span>
+          <strong>{result.result.toUpperCase()}</strong>
+        </div>
+        <div>
+          <span>Layer</span>
+          <strong>{result.layer}</strong>
+        </div>
+        <div>
+          <span>Request ID</span>
+          <strong>{result.request_id}</strong>
+        </div>
+      </div>
+      <p>{result.message}</p>
+      <code>{result.api}</code>
+    </section>
+  );
+}
+
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 function Dashboard({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
   return (
@@ -399,10 +445,10 @@ function Dashboard({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
       <section className="hero-panel">
         <div>
           <p className="eyebrow">Controlled client attack</p>
-          <h3>Attack Frontend {'→'} API Gateway {'→'} Server UI Evidence</h3>
+          <h3>Attack Frontend {'→'} API Gateway {'→'} Local Block Evidence</h3>
           <p>
             Mỗi nút test sẽ gửi request thật vào API Gateway, gắn X-Attack-Id/X-Request-ID, nhận status từ server,
-            rồi redirect sang Server UI để hiển thị message box.
+            rồi hiển thị kết quả bị chặn ngay trên máy tấn công.
           </p>
         </div>
         <div className="hero-panel__status">
@@ -693,14 +739,14 @@ function AclStudentPage({
           <Database className="section-heading__icon" />
           <div>
             <h3>Kiểm thử thêm dữ liệu vào bảng sinh viên</h3>
-            <p>POST trước, sau đó GET lại bảng và redirect sang Server UI để hiển thị Student Table Evidence.</p>
+            <p>POST trước, sau đó GET lại bảng và hiển thị Student Table Evidence ngay tại Attack Frontend.</p>
           </div>
         </div>
         <div className="two-column">
           <ActionCard
             danger
             title={`User Thử Thêm Data (${algo.toUpperCase()})`}
-            description={`Dùng user token POST ${studentsPath}. Kong ACL phải trả 403. Server UI hiển thị bảng nhưng không có dòng vừa thử thêm.`}
+            description={`Dùng user token POST ${studentsPath}. Kong ACL phải trả 403. Attack Frontend hiển thị bảng nhưng không có dòng vừa thử thêm.`}
             icon={Lock}
             buttonLabel="User Thêm Sinh Viên"
             onRun={() =>
@@ -715,7 +761,7 @@ function AclStudentPage({
           <ActionCard
             success
             title={`Admin Thêm Data (${algo.toUpperCase()})`}
-            description={`Dùng admin token POST ${studentsPath}. Backend thêm data thành công. Server UI hiển thị bảng có dòng mới.`}
+            description={`Dùng admin token POST ${studentsPath}. Backend thêm data thành công. Attack Frontend hiển thị bảng có dòng mới.`}
             icon={CheckCircle2}
             buttonLabel="Admin Thêm Sinh Viên"
             onRun={() =>
@@ -1112,7 +1158,7 @@ function RateLimitPage({
           <Activity className="section-heading__icon" />
           <div>
             <h3>Tiến trình bắn request</h3>
-            <p>Frontend chỉ redirect sang Server UI sau khi đã gửi xong toàn bộ batch.</p>
+            <p>Frontend hiển thị kết quả sau khi đã gửi xong toàn bộ batch.</p>
           </div>
         </div>
         <div className="progress-track">
@@ -1157,6 +1203,7 @@ export function App() {
   const [userTokens, setUserTokensState] = useState<TokenMap>({ ...EMPTY_TOKEN_MAP });
   const [hmacSecret, setHmacSecret] = useState('v4u1t-s3cr3t');
   const [burstCount, setBurstCount] = useState(150);
+  const [lastAttackResult, setLastAttackResult] = useState<AttackResult | null>(null);
 
   const setAdminToken = (a: TokenAlgorithm, token: string) =>
     setAdminTokensState((prev) => ({ ...prev, [a]: token }));
@@ -1164,6 +1211,15 @@ export function App() {
     setUserTokensState((prev) => ({ ...prev, [a]: token }));
 
   const globalState: GlobalTokenState = { algo, setAlgo, adminTokens, userTokens, setAdminToken, setUserToken };
+
+  useEffect(() => {
+    const onAttackResult = (event: Event) => {
+      setLastAttackResult((event as CustomEvent<AttackResult>).detail);
+    };
+
+    window.addEventListener('attack-result', onAttackResult);
+    return () => window.removeEventListener('attack-result', onAttackResult);
+  }, []);
 
   // Active algo badge colors
   const activeColor = ALGO_OPTIONS.find((o) => o.value === algo)?.color ?? '#6366f1';
@@ -1218,6 +1274,7 @@ export function App() {
         </header>
 
         <main className="content">
+          <AttackResultPanel result={lastAttackResult} />
           {activePage === 'dashboard' && <Dashboard onNavigate={setActivePage} />}
           {activePage === 'jwt' && <JwtPage {...globalState} />}
           {activePage === 'acl' && <AclStudentPage {...globalState} />}
