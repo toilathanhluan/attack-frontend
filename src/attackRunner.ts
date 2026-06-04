@@ -151,12 +151,15 @@ export async function runReplayAttack(payload: AttackPayload, replayRequestId: s
   }
 }
 
-export async function fetchDemoToken(role: 'admin' | 'user') {
-  const response = await fetch(`${API_BASE_URL}/api/v1/demo-token/${role}`, {
+export type TokenAlgorithm = 'rs256' | 'hs256' | 'es256';
+
+export async function fetchDemoToken(role: 'admin' | 'user', algorithm: TokenAlgorithm = 'rs256') {
+  const url = `${API_BASE_URL}/api/v1/demo-token/${role}?algorithm=${algorithm}`;
+  const response = await fetch(url, {
     headers: {
       'X-Attack-Id': crypto.randomUUID(),
       'X-Request-ID': crypto.randomUUID(),
-      'X-Scenario': `demo-token-${role}`,
+      'X-Scenario': `demo-token-${role}-${algorithm}`,
     },
   });
   const data = await response.json();
@@ -172,14 +175,16 @@ export async function runStudentAclDemo({
   token,
   role,
   student,
+  algo = 'rs256',
 }: {
   token: string;
   role: 'user' | 'admin';
   student: StudentPayload;
+  algo?: TokenAlgorithm;
 }) {
   const attackId = crypto.randomUUID();
   const requestId = crypto.randomUUID();
-  const path = '/api/v1/students-rs256';
+  const path = `/api/v1/students-${algo}`;
   const authHeaders: Record<string, string> = token.trim() ? { Authorization: `Bearer ${token.trim()}` } : {};
 
   try {
@@ -190,7 +195,7 @@ export async function runStudentAclDemo({
         'Content-Type': 'application/json',
         'X-Attack-Id': attackId,
         'X-Request-ID': requestId,
-        'X-Scenario': `acl-${role}-create-student`,
+        'X-Scenario': `acl-${role}-${algo}-create-student`,
       },
       body: JSON.stringify(student),
     });
@@ -204,7 +209,7 @@ export async function runStudentAclDemo({
           ...authHeaders,
           'X-Attack-Id': attackId,
           'X-Request-ID': `${requestId}-table`,
-          'X-Scenario': `acl-${role}-students-table`,
+          'X-Scenario': `acl-${role}-${algo}-students-table`,
         },
       });
       tableData = await tableResponse.json();
@@ -221,7 +226,7 @@ export async function runStudentAclDemo({
       : [];
 
     redirectToServer({
-      scenario: role === 'admin' ? 'admin-role-create-student' : 'user-role-create-student',
+      scenario: role === 'admin' ? `admin-role-create-student-${algo}` : `user-role-create-student-${algo}`,
       result,
       code: String(createResponse.status),
       layer: createAllowed ? 'Backend' : 'Kong ACL/RBAC',
@@ -229,8 +234,8 @@ export async function runStudentAclDemo({
       request_id: requestId,
       api: path,
       message: createAllowed
-        ? `Admin role created student ${student.student_code}. Table was refreshed with HTTP ${tableResponse?.status || 'n/a'}.`
-        : `User role was blocked from creating student ${student.student_code}. Table was refreshed with HTTP ${tableResponse?.status || 'n/a'} and should not include the blocked row.`,
+        ? `Admin role created student ${student.student_code} via ${algo.toUpperCase()}. Table refreshed with HTTP ${tableResponse?.status || 'n/a'}.`
+        : `User role was blocked from creating student ${student.student_code} via ${algo.toUpperCase()}. Table refreshed with HTTP ${tableResponse?.status || 'n/a'} — blocked row should not appear.`,
       table: 'students',
       actor_role: role,
       mutation_status: createAllowed ? 'created' : 'blocked',
@@ -239,7 +244,7 @@ export async function runStudentAclDemo({
     });
   } catch {
     redirectToServer({
-      scenario: role === 'admin' ? 'admin-role-create-student' : 'user-role-create-student',
+      scenario: role === 'admin' ? `admin-role-create-student-${algo}` : `user-role-create-student-${algo}`,
       result: 'error',
       code: '0',
       layer: 'Browser/CORS/TLS',
@@ -256,7 +261,13 @@ export async function runStudentAclDemo({
   }
 }
 
-export async function runBurstAttack(token: string, count: number, onProgress?: (progress: BurstProgress) => void) {
+export async function runBurstAttack(
+  token: string,
+  count: number,
+  burstPath: string,
+  scenario: string,
+  onProgress?: (progress: BurstProgress) => void,
+) {
   const attackId = crypto.randomUUID();
   const requestId = crypto.randomUUID();
   let rateLimited = 0;
@@ -267,14 +278,14 @@ export async function runBurstAttack(token: string, count: number, onProgress?: 
 
   if (!token.trim()) {
     redirectToServer({
-      scenario: 'rate-limit-burst',
+      scenario,
       result: 'warning',
       code: '0',
       layer: 'Attack Client',
       attack_id: attackId,
       request_id: requestId,
-      api: '/api/v1/jwt-rs256',
-      message: 'Rate-limit demo needs a valid RS256/admin token. Without it, JWT blocks the request before the rate-limit evidence is meaningful.',
+      api: burstPath,
+      message: `Rate-limit demo needs a valid token. Without it, JWT blocks the request before rate-limit evidence is meaningful.`,
     });
     return;
   }
@@ -284,12 +295,12 @@ export async function runBurstAttack(token: string, count: number, onProgress?: 
   await Promise.all(
     Array.from({ length: count }, async (_, index) => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/jwt-rs256?_burst=${Date.now()}_${index}`, {
+        const response = await fetch(`${API_BASE_URL}${burstPath}?_burst=${Date.now()}_${index}`, {
           headers: {
-            Authorization: token ? `Bearer ${token}` : '',
+            Authorization: `Bearer ${token}`,
             'X-Attack-Id': attackId,
             'X-Request-ID': `${requestId}-${index}`,
-            'X-Scenario': 'rate-limit-burst',
+            'X-Scenario': scenario,
           },
         });
 
@@ -306,13 +317,13 @@ export async function runBurstAttack(token: string, count: number, onProgress?: 
   );
 
   redirectToServer({
-    scenario: 'rate-limit-burst',
+    scenario,
     result: rateLimited > 0 ? 'blocked' : 'warning',
     code: rateLimited > 0 ? '429' : rejected > 0 ? '401/403' : '200',
     layer: rateLimited > 0 ? 'Kong Rate Limiting' : rejected > 0 ? 'Kong JWT/ACL' : 'Backend',
     attack_id: attackId,
     request_id: requestId,
-    api: '/api/v1/jwt-rs256',
-    message: `Burst completed after sending ${count} requests: ${allowed} allowed, ${rateLimited} rate-limited, ${rejected} rejected by auth/policy, ${failed} failed at browser/network layer.`,
+    api: burstPath,
+    message: `Burst completed: ${count} requests sent → ${allowed} allowed, ${rateLimited} rate-limited (429), ${rejected} rejected by auth/policy, ${failed} network errors.`,
   });
 }

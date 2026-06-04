@@ -655,3 +655,504 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Algorithm Picker ─────────────────────────────────────────── */
+.algo-picker {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.algo-btn {
+  display: inline-flex;
+  min-width: 96px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(170, 178, 213, 0.22);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #aab2d5;
+  padding: 0 18px;
+  height: 40px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  transition: border-color 140ms, color 140ms, box-shadow 140ms, background 140ms;
+}
+
+.algo-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.algo-btn--active {
+  border-color: var(--algo-color, #6366f1);
+  background: color-mix(in srgb, var(--algo-color, #6366f1) 15%, transparent);
+  color: var(--algo-color, #6366f1);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--algo-color, #6366f1) 35%, transparent);
+}
+
+/* ── Algo info bar ────────────────────────────────────────────── */
+.algo-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.24);
+  color: #aab2d5;
+  font-size: 13px;
+}
+
+.algo-info code {
+  color: #ffb800;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+/* ── Sidebar algo badge ───────────────────────────────────────── */
+.sidebar-algo-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 12px 0;
+  border: 1px solid color-mix(in srgb, var(--algo-color, #6366f1) 45%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--algo-color, #6366f1) 10%, transparent);
+  padding: 7px 12px;
+  transition: border-color 200ms, background 200ms;
+}
+
+.sidebar-algo-badge span {
+  color: #aab2d5;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sidebar-algo-badge strong {
+  color: var(--algo-color, #6366f1);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+/* ── Sidebar token summary ────────────────────────────────────── */
+.sidebar-token-summary {
+  margin: 12px 12px 0;
+  border: 1px solid rgba(170, 178, 213, 0.12);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px 12px;
+}
+
+.sidebar-token-summary__title {
+  margin: 0 0 8px;
+  color: #aab2d5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sidebar-token-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  color: #aab2d5;
+}
+
+.sidebar-token-row span:last-child {
+  color: #00e5ff;
+  font-weight: 700;
+}
+
+/* ── Token message ────────────────────────────────────────────── */
+.token-message {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: #00e5ff;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   Token Inspector Panel
+   ══════════════════════════════════════════════════════════════ */
+.token-inspector-panel {
+  border-color: rgba(255, 77, 109, 0.2);
+  background: rgba(19, 26, 47, 0.9);
+}
+
+.token-inspector-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr);
+  gap: 0;
+  align-items: start;
+}
+
+/* ── Columns ──────────────────────────────────────────────────── */
+.token-inspector-col {
+  display: grid;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.token-inspector-col--valid {
+  border: 1px solid rgba(0, 255, 149, 0.22);
+  background: rgba(0, 255, 149, 0.04);
+}
+
+.token-inspector-col--danger {
+  border: 1px solid rgba(255, 77, 109, 0.28);
+  background: rgba(255, 77, 109, 0.05);
+}
+
+/* ── Labels ───────────────────────────────────────────────────── */
+.token-inspector-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.token-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.token-badge--valid {
+  background: rgba(0, 255, 149, 0.15);
+  border: 1px solid rgba(0, 255, 149, 0.35);
+  color: #00ff95;
+}
+
+.token-badge--danger {
+  background: rgba(255, 77, 109, 0.15);
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  color: #ff4d6d;
+}
+
+.token-inspector-algo {
+  color: #00e5ff;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+/* ── Raw token box ────────────────────────────────────────────── */
+.token-raw-box {
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.token-raw-box--valid {
+  border-color: rgba(0, 255, 149, 0.2);
+}
+
+.token-raw-box--danger {
+  border-color: rgba(255, 77, 109, 0.2);
+}
+
+.token-raw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.token-raw-header span {
+  color: #aab2d5;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.token-raw-value {
+  margin: 0;
+  padding: 10px 12px;
+  color: #ffb800;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: auto;
+  max-height: 80px;
+}
+
+.token-raw-value--danger {
+  color: #ff8080;
+}
+
+/* ── Decoded parts ────────────────────────────────────────────── */
+.token-decoded {
+  display: grid;
+  gap: 8px;
+}
+
+.token-decoded-part {
+  display: grid;
+  gap: 4px;
+}
+
+.token-decoded-label {
+  color: #aab2d5;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+.token-decoded-label--danger {
+  color: #ff4d6d;
+}
+
+.token-decoded-value {
+  margin: 0;
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  max-height: 160px;
+}
+
+.token-decoded-value--header {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+}
+
+.token-decoded-value--payload {
+  background: rgba(0, 255, 149, 0.08);
+  border: 1px solid rgba(0, 255, 149, 0.2);
+  color: #6ee7b7;
+}
+
+.token-decoded-value--sig {
+  background: rgba(255, 184, 0, 0.08);
+  border: 1px solid rgba(255, 184, 0, 0.2);
+  color: #fcd34d;
+  max-height: 64px;
+}
+
+.token-decoded-value--danger {
+  background: rgba(255, 77, 109, 0.1);
+  border: 1px solid rgba(255, 77, 109, 0.25);
+  color: #fca5a5;
+}
+
+/* ── Copy button ──────────────────────────────────────────────── */
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(0, 229, 255, 0.08);
+  color: #00e5ff;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms;
+}
+
+.copy-btn:hover {
+  background: rgba(0, 229, 255, 0.16);
+  border-color: rgba(0, 229, 255, 0.6);
+}
+
+.copy-btn--danger {
+  border-color: rgba(255, 77, 109, 0.3);
+  background: rgba(255, 77, 109, 0.08);
+  color: #ff4d6d;
+}
+
+.copy-btn--danger:hover {
+  background: rgba(255, 77, 109, 0.16);
+  border-color: rgba(255, 77, 109, 0.6);
+}
+
+.copy-btn__icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Divider / attack arrow ───────────────────────────────────── */
+.token-inspector-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px;
+  padding-top: 56px;
+}
+
+.attack-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.attack-arrow span:first-child {
+  color: #ff4d6d;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+.attack-arrow__icon {
+  font-size: 28px;
+  color: #ff4d6d;
+  text-shadow: 0 0 12px rgba(255, 77, 109, 0.6);
+  animation: pulse-arrow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-arrow {
+  0%, 100% { opacity: 1; transform: translateX(0); }
+  50% { opacity: 0.6; transform: translateX(4px); }
+}
+
+.tamper-label {
+  color: #aab2d5;
+  font-size: 10px;
+  text-align: center;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Attack result badge ──────────────────────────────────────── */
+.attack-result-badge {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  border-radius: 6px;
+  background: rgba(255, 77, 109, 0.1);
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.attack-result-badge span:first-child {
+  color: #aab2d5;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.attack-result-badge strong {
+  color: #ff4d6d;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 18px;
+  font-weight: 900;
+  text-shadow: 0 0 16px rgba(255, 77, 109, 0.5);
+}
+
+/* ── Toggle / expand button ───────────────────────────────────── */
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 5px;
+  background: rgba(0, 229, 255, 0.06);
+  color: #aab2d5;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  cursor: pointer;
+  justify-self: start;
+  transition: background 140ms, color 140ms;
+}
+
+.toggle-btn:hover {
+  background: rgba(0, 229, 255, 0.12);
+  color: #00e5ff;
+}
+
+/* ── Empty hint ───────────────────────────────────────────────── */
+.token-empty-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border: 1px dashed rgba(0, 229, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.token-empty-hint__icon {
+  width: 32px;
+  height: 32px;
+  color: #aab2d5;
+  opacity: 0.5;
+}
+
+.token-empty-hint p {
+  margin: 0;
+  color: #aab2d5;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.token-empty-hint strong {
+  color: #00e5ff;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .token-inspector-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .token-inspector-divider {
+    flex-direction: row;
+    padding-top: 0;
+    justify-content: center;
+  }
+  .attack-arrow {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .attack-arrow__icon {
+    font-size: 22px;
+  }
+}
